@@ -51,6 +51,10 @@ table {
 	border-spacing: 0;
 }
 
+.logo {
+	font-size: 70px;
+}
+
 body {
 	-webkit-text-size-adjust: none;
 }
@@ -282,6 +286,7 @@ input, select, textarea {
 
 		.row > .off-3 {
 			margin-left: 25%;
+
 		}
 
 		.row > .col-4 {
