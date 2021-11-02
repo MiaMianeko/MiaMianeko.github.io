@@ -1590,8 +1590,21 @@ input, select, textarea {
 			position:relative;
 			width:900px;
 			height: auto;
-			position: center;
-			padding: 1.75em 1.75em 1.75em 1.75em;
+			left: 1.75em;
+			top: 1.75em;
+			margin: -4.5em 0 4.25em -3.5em;
+
+
+		}
+		.box .image.bigintext{
+			position:relative;
+			width:1100px;
+			height: auto;left: 1.75em;
+			top: 1.75em;
+			margin: -4.5em 0 4.25em -3.5em;
+
+
+
 		}
 
 		.box.post header {
