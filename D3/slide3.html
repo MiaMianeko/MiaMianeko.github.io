@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protected Areas Map</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            width: 100%;
+            height: 800px;
+        }
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            width: 120px;
+            height: auto;
+            padding: 8px;
+            font: 12px sans-serif;
+            background: lightsteelblue;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0;
+        }
+        .controls {
+            margin: 20px;
+        }
+        .controls label {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="controls">
+    <label for="year-select">Select Year:</label>
+    <select id="year-select"></select>
+    <label>Select Area Type:</label>
+    <input type="radio" id="terrestrial" name="area-type" value="TERRESTRIAL" checked>
+    <label for="terrestrial">Terrestrial</label>
+    <input type="radio" id="marine" name="area-type" value="MARINE">
+    <label for="marine">Marine</label>
+</div>
+<div id="map"></div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const width = 960;
+        const height = 600;
+
+        const svg = d3.select("#map").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        const projection = d3.geoMercator()
+            .scale(150)
+            .translate([width / 2, height / 1.5]);
+
+        const path = d3.geoPath().projection(projection);
+
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip");
+
+        let allData = [];
+        let countries = [];
+
+        function updateMap(areaType, year) {
+            if (!year) return;
+
+            // Filter data
+            const filteredData = allData.filter(d => d.Domain === areaType && d.Year === year);
+
+            // Handle case where filteredData might be empty
+            if (filteredData.length === 0) {
+                console.warn(`No data available for ${areaType} in year ${year}`);
+                return;
+            }
+
+            const dataMap = new Map(filteredData.map(d => [d.Country, +d.Value]));
+
+            svg.selectAll("path")
+                .data(countries.features)
+                .join("path")
+                .attr("fill", d => {
+                    const countryName = d.properties.name;
+                    const value = dataMap.get(countryName) || 0;
+                    return d3.interpolateYlGnBu(value / 100); // Adjust color based on percentage
+                })
+                .attr("d", path)
+                .on("mouseover", (event, d) => {
+                    const countryName = d.properties.name;
+                    const value = dataMap.get(countryName) || 0;
+                    tooltip.transition().duration(200).style("opacity", .9);
+                    tooltip.html(`${countryName}<br/>Percentage: ${value.toFixed(2)}%`)
+                        .style("left", (event.pageX + 5) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", () => {
+                    tooltip.transition().duration(500).style("opacity", 0);
+                });
+        }
+
+        function updateDropdowns(data, selector) {
+            const dropdown = d3.select(selector);
+            const years = Array.from(new Set(data.map(d => d.Year)));
+
+            dropdown.selectAll("option")
+                .data(years)
+                .enter().append("option")
+                .attr("value", d => d)
+                .text(d => d);
+
+            dropdown.on("change", function() {
+                const selectedYear = this.value;
+                updateMap(document.querySelector('input[name="area-type"]:checked').value, selectedYear);
+            });
+        }
+
+        d3.json('https://unpkg.com/world-atlas@2/countries-50m.json').then(world => {
+            countries = topojson.feature(world, world.objects.countries);
+
+            svg.selectAll("path")
+                .data(countries.features)
+                .enter().append("path")
+                .attr("fill", "#ddd")
+                .attr("d", path)
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 0.5);
+        });
+
+        d3.csv('./dataset/country_terrestrial_protected_area.csv').then(data => {
+            allData = data.map(d => ({ ...d, Domain: "TERRESTRIAL" }));
+            return d3.csv('./dataset/country_marine_protected_area.csv');
+        }).then(data => {
+            allData = allData.concat(data.map(d => ({ ...d, Domain: "MARINE" })));
+            updateDropdowns(allData, '#year-select');
+            const initialYear = document.querySelector('#year-select').value;
+            if (initialYear) updateMap("TERRESTRIAL", initialYear);
+        }).catch(error => {
+            console.error('Error loading data:', error);
+        });
+
+        document.querySelectorAll('input[name="area-type"]').forEach(input => {
+            input.addEventListener('change', function() {
+                const areaType = this.value;
+                const selectedYear = document.querySelector('#year-select').value;
+                if (selectedYear) updateMap(areaType, selectedYear);
+            });
+        });
+    });
+</script>
+</body>
+</html>

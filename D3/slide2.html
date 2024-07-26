@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Species Vulnerability by Country</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        .slide {
+            display: none; /* Hide all slides by default */
+        }
+        .slide.active {
+            display: block; /* Show active slide */
+        }
+        .navigation-buttons {
+            margin-top: 20px;
+        }
+        .bar {
+            fill: steelblue;
+        }
+        .axis text {
+            font-size: 14px; /* Increased font size for better readability */
+        }
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 5px;
+            background: #f9f9f9;
+            border: 1px solid #d3d3d3;
+            border-radius: 3px;
+            pointer-events: none;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+<div id="slide2" class="slide active">
+    <h2>Species Vulnerability by Country</h2>
+    <label for="species-select-slide2">Select Species:</label>
+    <select id="species-select-slide2" class="species-select"></select>
+    <div id="chart2"></div>
+    <div class="navigation-buttons">
+        <button class="prev-slide" data-prev-slide="slide1">Previous</button>
+        <button class="next-slide" data-next-slide="slide3">Next</button>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const svg2 = d3.select("#chart2").append("svg").attr("width", 1000).attr("height", 500); // Increased width and height
+        const margin2 = { top: 20, right: 30, bottom: 100, left: 60 };  // Increased bottom and left margins
+        const width2 = +svg2.attr("width") - margin2.left - margin2.right;
+        const height2 = +svg2.attr("height") - margin2.top - margin2.bottom;
+
+        const g2 = svg2.append("g")
+            .attr("transform", `translate(${margin2.left},${margin2.top})`);
+
+        // Initialize scales
+        const x = d3.scaleBand().rangeRound([0, width2]).padding(0.1);
+        const y = d3.scaleLinear().rangeRound([height2, 0]);
+
+        // Initialize axes
+        g2.append("g")
+            .attr("transform", `translate(0,${height2})`)
+            .attr("class", "x-axis");
+
+        g2.append("g")
+            .attr("class", "y-axis");
+
+        // Initialize tooltip
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip");
+
+        // Function to update the chart based on selected species
+        function updateChart(selectedSpecies) {
+            d3.csv("./dataset/country_vulnerable.csv").then(data => {
+                const filteredData = data.filter(d => d.Species === selectedSpecies);
+
+                // Sort data by value in descending order
+                filteredData.sort((a, b) => b.Value - a.Value);
+
+                // Update scales
+                x.domain(filteredData.map(d => d.Country));
+                y.domain([0, d3.max(filteredData, d => +d.Value)]);
+
+                // Update axes
+                g2.select(".x-axis").call(d3.axisBottom(x).tickSize(0))
+                    .selectAll("text")
+                    .attr("transform", "rotate(-45)")
+                    .style("text-anchor", "end")
+                    .style("font-size", "14px")  // Increased font size for better readability
+                    .style("padding", "0 5px");   // Add padding if needed
+
+                g2.select(".y-axis").call(d3.axisLeft(y).ticks(10));  // Added more ticks for better readability
+
+                // Update bars
+                const bars = g2.selectAll(".bar")
+                    .data(filteredData, d => d.Country);
+
+                bars.enter().append("rect")
+                    .attr("class", "bar")
+                    .attr("x", d => x(d.Country))
+                    .attr("y", d => y(d.Value))
+                    .attr("width", x.bandwidth())
+                    .attr("height", d => height2 - y(d.Value))
+                    .on("mouseover", function(event, d) {
+                        tooltip.transition().duration(200).style("opacity", .9);
+                        tooltip.html(`Country: ${d.Country}<br>Value: ${d.Value}`)
+                            .style("left", (event.pageX + 5) + "px")
+                            .style("top", (event.pageY - 28) + "px");
+                    })
+                    .on("mouseout", function() {
+                        tooltip.transition().duration(500).style("opacity", 0);
+                    })
+                    .merge(bars)
+                    .transition().duration(750)
+                    .attr("x", d => x(d.Country))
+                    .attr("y", d => y(d.Value))
+                    .attr("width", x.bandwidth())
+                    .attr("height", d => height2 - y(d.Value));
+
+                bars.exit().remove();
+            });
+        }
+
+        // Load data and populate dropdown
+        d3.csv("./dataset/country_vulnerable.csv").then(data => {
+            updateDropdowns(data, '#species-select-slide2');
+
+            // Initialize chart with default selection
+            const defaultSpecies = document.querySelector('#species-select-slide2').value;
+            updateChart(defaultSpecies);
+
+            // Event listener for dropdown change
+            document.querySelector('#species-select-slide2').addEventListener('change', function() {
+                updateChart(this.value);
+            });
+        });
+
+        // Function to populate dropdown
+        function updateDropdowns(data, selector) {
+            const dropdown = d3.select(selector);
+            const species = Array.from(new Set(data.map(d => d.Species))).sort();
+
+            dropdown.selectAll("option")
+                .data(species)
+                .enter()
+                .append("option")
+                .text(d => d)
+                .attr("value", d => d);
+        }
+    });
+</script>
+</body>
+</html>
