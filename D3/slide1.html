@@ -87,6 +87,22 @@
             margin: 10px 0; /* Adjusted margin to bring the title closer to the SVG */
             padding: 10px; /* Optional: Add padding if needed for better spacing */
         }
+        .container {
+            display: flex; /* Use Flexbox to layout items */
+            align-items: flex-start; /* Align items at the top */
+            gap: 20px; /* Space between chart and description */
+            margin: 20px; /* Margin around the container */
+        }
+        .description {
+            width: 400px; /* Increase width for more space */
+            font-size: 18px; /* Increase font size for better readability */
+            line-height: 1.8; /* Increase line height for improved readability */
+            padding: 20px; /* Increase padding for more space inside the box */
+            background-color: #f9f9f9;
+            border: 1px solid #d3d3d3;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);/* Add a shadow for better visibility */
+        }
 
     </style>
 
@@ -94,9 +110,23 @@
 <body>
 <div id="slide1" class="slide active">
     <h2>Red List Index Over Time</h2>
+    <div class="line-container">
     <label for="country-select-slide1">Select Country:</label>
     <select id="country-select-slide1" class="country-select"></select>
-    <div id="chart1"></div>
+        <div class="container">
+            <div id="chart1"></div>
+    <div class="description">
+        This chart displays the Red List Index for selected countries over time. The Red List Index measures the extinction risk of species, with different lines representing the Index, Upper Bound, and Lower Bound values.
+        <br><br>
+        <strong>How to Use:</strong>
+    <ul>
+        <li>Select a country from the dropdown menu to view its Red List Index data.</li>
+        <li>The chart shows three lines: <strong>Index</strong> (overall trend), <strong>Upper Bound</strong> (highest estimate), and <strong>Lower Bound</strong> (lowest estimate).</li>
+        <li>Hover over the chart to see detailed values for each year, including the Index, Upper, and Lower Bound values.</li>
+    </ul>
+    </div>
+    </div>
+    </div>
 </div>
 
 <script>

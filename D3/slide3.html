@@ -127,11 +127,29 @@
         .navigation-buttons button:hover {
             background-color: #0056b3;
         }
+        .map-container {
+            display: flex;
+            align-items: flex-start;
+            margin: 20px;
+            gap: 20px;
+        }
+
+        .map-text {
+            width: 400px; /* Increase width for more space */
+            font-size: 18px; /* Increase font size for better readability */
+            line-height: 1.8; /* Increase line height for improved readability */
+            padding: 20px; /* Increase padding for more space inside the box */
+            background-color: #f9f9f9;
+            border: 1px solid #d3d3d3;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Add a shadow for better visibility */
+        }
 
     </style>
 </head>
 <body>
 <div class="title">World Protected Areas by Time</div>
+
 <div class="controls">
     <div class="slider-container">
         <label for="year-slider">Select Year:</label>
@@ -144,8 +162,21 @@
         <input type="radio" id="marine" name="area-type" value="MARINE">
         <label for="marine">Marine</label>
     </div>
+
 </div>
-<div id="map"><div id="legend" class="legend"></div></div>
+
+<div class="map-container">
+    <div id="map">
+        <div id="legend" class="legend"></div>
+    </div>
+    <div class="map-text">
+        <p>This map shows the percentage of protected areas around the world, separated into terrestrial and marine categories. Use the slider to select a year and observe the changes in protected areas over time.</p>
+        <p>The color gradient represents the percentage of protected areas, with darker colors indicating higher percentages. Hover over countries to see more details about their protected areas.</p>
+        <p>Use the radio buttons to switch between terrestrial and marine protected areas. The annotations on the map highlight significant changes or trends in protected areas for different years and regions.</p>
+    </div>
+</div>
+</div>
+
 
 
 
@@ -218,7 +249,7 @@
             if (areaType === "TERRESTRIAL" && year > 1985) {
                 annotations.push({
                     note: {
-                        label: `Increase Terrestrial Overtime`,
+                        label: `Increase Terrestrial Since 1980`,
                         title: "West Europe"
                     },
                     type: d3.annotationCalloutCircle,
@@ -235,7 +266,7 @@
             if (areaType === "TERRESTRIAL" && year > 1975) {
                 annotations.push({
                     note: {
-                        label: `Increase Terrestrial Significantly`,
+                        label: `Increase Terrestrial Significantly around 1970`,
                         title: "Greenland"
                     },
                     type: d3.annotationCalloutCircle,
@@ -253,7 +284,7 @@
             if (areaType === "MARINE" && year > 2010) {
                 annotations.push({
                     note: {
-                        label: `Increase Marine Overtime`,
+                        label: `Increase Marine Since 2010`,
                         title: "South America"
                     },
                     type: d3.annotationCalloutCircle,
@@ -287,7 +318,7 @@
             if (areaType === "MARINE" && year > 1980) {
                 annotations.push({
                     note: {
-                        label: `Increase Marine Overtime`,
+                        label: `Increase Marine Since 1980`,
                         title: "West Europe"
                     },
                     type: d3.annotationCalloutCircle,
