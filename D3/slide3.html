@@ -131,18 +131,18 @@
             display: flex;
             align-items: flex-start;
             margin: 20px;
-            gap: 20px;
+            gap: 10px; /* Reduce the gap between the map and the text */
         }
 
         .map-text {
-            width: 400px; /* Increase width for more space */
-            font-size: 18px; /* Increase font size for better readability */
-            line-height: 1.8; /* Increase line height for improved readability */
-            padding: 20px; /* Increase padding for more space inside the box */
+            width: 750px; /* Reduce width if needed */
+            font-size: 16px; /* Adjust font size to maintain readability */
+            line-height: 1.6; /* Adjust line height for improved readability */
+            padding: 15px; /* Reduce padding for more compact text box */
             background-color: #f9f9f9;
             border: 1px solid #d3d3d3;
             border-radius: 5px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Add a shadow for better visibility */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Keep shadow for visibility */
         }
 
     </style>
@@ -170,10 +170,21 @@
         <div id="legend" class="legend"></div>
     </div>
     <div class="map-text">
-        <p>This map shows the percentage of protected areas around the world, separated into terrestrial and marine categories. Use the slider to select a year and observe the changes in protected areas over time.</p>
-        <p>The color gradient represents the percentage of protected areas, with darker colors indicating higher percentages. Hover over countries to see more details about their protected areas.</p>
-        <p>Use the radio buttons to switch between terrestrial and marine protected areas. The annotations on the map highlight significant changes or trends in protected areas for different years and regions.</p>
+        <h2>World Protected Areas</h2>
+        <p>This map visualizes the percentage of protected areas globally, categorized into terrestrial and marine areas.</p>
+
+        <h3>Using the Map</h3>
+        <ul>
+            <li><strong>Slider:</strong> Select a year using the slider to observe changes in protected areas over time.</li>
+            <li><strong>Color Gradient:</strong> The color gradient indicates the percentage of protected areas, with darker colors representing higher percentages.</li>
+            <li><strong>Hover:</strong> Hover over countries to see detailed information about their protected areas.</li>
+            <li><strong>Radio Buttons:</strong> Switch between terrestrial and marine protected areas using the radio buttons.</li>
+        </ul>
+
+        <h3>Annotations</h3>
+        <p>The annotations on the map highlight significant changes or trends in protected areas for different years and regions.</p>
     </div>
+
 </div>
 </div>
 

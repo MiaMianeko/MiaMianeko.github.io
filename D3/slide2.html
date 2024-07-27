@@ -89,12 +89,23 @@
     <div class="scatter-container">
         <div id="scatter-chart"></div>
         <div class="scatter-text">
-            <p>This scatter plot visualizes the relationship between the number of endangered species and the total number of known species for different countries. Each circle represents a country, where the X-axis shows the number of endangered species and the Y-axis shows the total number of known species. The size of each circle corresponds to the total number of known species, and the color represents different countries.</p>
+            <h3>Understanding the Scatter Plot</h3>
+            <p>This scatter plot provides a visual representation of the relationship between the number of endangered species and the total number of known species across different countries.</p>
+
+            <h4>Interactivity:</h4>
             <p>Hover over the circles to see detailed information about each country, including the exact numbers for endangered and total known species.</p>
-            <p>Use this chart to explore how species conservation status varies across countries and identify regions with significant numbers of endangered species.</p>
+
+            <h4>Insights:</h4>
+            <ul>
+                <li><strong style="color: rgb(141, 211, 199);">Australia:</strong> Notable for having a high total number of known species, but relatively fewer endangered species.</li>
+                <li><strong style="color: rgb(128, 177, 211);">Czech Republic:</strong> Characterized by a higher number of endangered species compared to its total known species.</li>
+                <li><strong style="color: rgb(169, 169, 169);">Germany:</strong> Exhibits a similar pattern to the Czech Republic, with a lower total number of species but a higher proportion of endangered species.</li>
+            </ul>
+
+
         </div>
     </div>
-</div>
+
 
 <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -127,6 +138,24 @@
 
         gScatter.append("g")
             .attr("class", "y-axis");
+
+
+        // Add X Axis Label
+        svgScatter.append("text")
+            .attr("class", "x-axis-label")
+            .attr("text-anchor", "middle")
+            .attr("x", marginScatter.left + widthScatter / 2)
+            .attr("y", heightScatter + marginScatter.top + 50) // Adjust as needed
+            .text("Number of Endangered Species");
+
+        // Add Y Axis Label
+        svgScatter.append("text")
+            .attr("class", "y-axis-label")
+            .attr("text-anchor", "middle")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -marginScatter.top - heightScatter / 2)
+            .attr("y", marginScatter.left - 50) // Adjust as needed
+            .text("Total Number of Known Species");
 
         // Scatter Plot Tooltip
         const tooltipScatter = d3.select("body").append("div")

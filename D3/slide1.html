@@ -90,11 +90,12 @@
         .container {
             display: flex; /* Use Flexbox to layout items */
             align-items: flex-start; /* Align items at the top */
+            flex-direction: column;
             gap: 20px; /* Space between chart and description */
             margin: 20px; /* Margin around the container */
         }
         .description {
-            width: 400px; /* Increase width for more space */
+            width: 1000px; /* Increase width for more space */
             font-size: 18px; /* Increase font size for better readability */
             line-height: 1.8; /* Increase line height for improved readability */
             padding: 20px; /* Increase padding for more space inside the box */
@@ -111,23 +112,29 @@
 <div id="slide1" class="slide active">
     <h2>Red List Index Over Time</h2>
     <div class="line-container">
-    <label for="country-select-slide1">Select Country:</label>
-    <select id="country-select-slide1" class="country-select"></select>
+        <label for="country-select-slide1">Select Country:</label>
+        <select id="country-select-slide1" class="country-select"></select>
         <div class="container">
             <div id="chart1"></div>
-    <div class="description">
-        This chart displays the Red List Index for selected countries over time. The Red List Index measures the extinction risk of species, with different lines representing the Index, Upper Bound, and Lower Bound values.
-        <br><br>
-        <strong>How to Use:</strong>
-    <ul>
-        <li>Select a country from the dropdown menu to view its Red List Index data.</li>
-        <li>The chart shows three lines: <strong>Index</strong> (overall trend), <strong>Upper Bound</strong> (highest estimate), and <strong>Lower Bound</strong> (lowest estimate).</li>
-        <li>Hover over the chart to see detailed values for each year, including the Index, Upper, and Lower Bound values.</li>
-    </ul>
-    </div>
-    </div>
+            <div class="description">
+                <p>This chart displays the Red List Index for selected countries over time. The <strong>Red List Index</strong> measures the extinction risk of species in a given area. It ranges from 0 to 1, where 1 indicates that no species are at risk of extinction, and 0 means all species are extinct.</p>
+
+                <p>The chart includes three lines:</p>
+                <ul>
+                    <li><strong style="color: #1f77b4;">Index:</strong> The overall trend of the extinction risk for species in the selected country.</li>
+                    <li><strong style="color: #ff7f0e;">Upper Bound:</strong> The highest estimate of the extinction risk, representing a more pessimistic scenario.</li>
+                    <li><strong style="color: #2ca02c;">Lower Bound:</strong> The lowest estimate of the extinction risk, representing a more optimistic scenario.</li>
+                </ul>
+                <strong>Explore yourself</strong>
+                <ul>
+                    <li>Select a country from the dropdown menu to view its Red List Index data.</li>
+                    <li>Hover over the line graph. The dotted vertical line will show the three estimates (Index, Upper, and Lower Bound) for the hovered year. The tooltip displays the exact values for that year.</li>
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
+
 
 <script>
     document.addEventListener("DOMContentLoaded", () => {
