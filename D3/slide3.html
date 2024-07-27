@@ -172,7 +172,6 @@
         let countries = [];
         let dataMap = new Map();
 
-
         function updateMap(areaType, year) {
             if (!year) return;
 
@@ -206,12 +205,18 @@
                     tooltip.transition().duration(500).style("opacity", 0);
                 });
 
-            addAnnotations();
+            addAnnotations(areaType, year); // Pass parameters to the updated function
         }
 
-        function addAnnotations() {
-            const annotations = [
-                {
+        function addAnnotations(areaType, year) {
+            // Remove any existing annotations
+            svg.selectAll(".annotation-group").remove();
+
+            // Define annotations with conditions
+            const annotations = [];
+
+            if (areaType === "TERRESTRIAL" && year > 1985) {
+                annotations.push({
                     note: {
                         label: `Increase Terrestrial Overtime`,
                         title: "West Europe"
@@ -225,8 +230,28 @@
                     dy: 50,
                     dx: 100,
                     color: "grey"
-                },
-                {
+                });
+            }
+            if (areaType === "TERRESTRIAL" && year > 1975) {
+                annotations.push({
+                    note: {
+                        label: `Increase Terrestrial Significantly`,
+                        title: "Greenland"
+                    },
+                    type: d3.annotationCalloutCircle,
+                    subject: {
+                        radius: 80
+                    },
+                    x: projection([-40.3468, 56.1304])[0],
+                    y: projection([116.3468, 76.1304])[1],
+                    dy: 50,
+                    dx: 100,
+                    color: "grey"
+                });
+            }
+
+            if (areaType === "MARINE" && year > 2010) {
+                annotations.push({
                     note: {
                         label: `Increase Marine Overtime`,
                         title: "South America"
@@ -240,18 +265,55 @@
                     dy: 50,
                     dx: 120,
                     color: "grey"
-                }
-            ];
+                });
+            }
+            if (areaType === "MARINE" && year > 2015) {
+                annotations.push({
+                    note: {
+                        label: `Increase Marine during 2015-2020`,
+                        title: "Australia"
+                    },
+                    type: d3.annotationCalloutCircle,
+                    subject: {
+                        radius: 50
+                    },
+                    x: projection([133.7751, -25.2744])[0],
+                    y: projection([133.7751, -25.2744])[1],
+                    dy: 50,
+                    dx: -120,
+                    color: "grey"
+                });
+            }
+            if (areaType === "MARINE" && year > 1980) {
+                annotations.push({
+                    note: {
+                        label: `Increase Marine Overtime`,
+                        title: "West Europe"
+                    },
+                    type: d3.annotationCalloutCircle,
+                    subject: {
+                        radius: 40
+                    },
+                    x: projection([10.3468, 56.1304])[0],
+                    y: projection([-116.3468, 46.1304])[1],
+                    dy: 50,
+                    dx: 100,
+                    color: "grey"
+                });
+            }
 
-            const makeAnnotations = d3.annotation()
-                .type(d3.annotationCalloutCircle)
-                .annotations(annotations);
+            // Add the annotations if there are any
+            if (annotations.length > 0) {
+                const makeAnnotations = d3.annotation()
+                    .type(d3.annotationCalloutCircle)
+                    .annotations(annotations);
 
-            svg.selectAll(".annotation-group").remove();
-            svg.append("g")
-                .attr("class", "annotation-group")
-                .call(makeAnnotations);
+                svg.append("g")
+                    .attr("class", "annotation-group")
+                    .call(makeAnnotations);
+            }
         }
+
 
         function updateSlider(years) {
             const slider = d3.select('#year-slider');
@@ -279,7 +341,7 @@
                 .attr("stroke", "#fff")
                 .attr("stroke-width", 0.5);
 
-            addAnnotations();
+            addAnnotations(document.querySelector('input[name="area-type"]:checked').value); // Initial annotation based on default area type
         });
 
         d3.csv('./dataset/country_terrestrial_protected_area.csv').then(data => {
@@ -299,7 +361,7 @@
         const colorScale = d3.scaleSequential(d3.interpolateYlGnBu)
             .domain([0, 100]);
 
-// Add legend
+        // Add legend
         const legendWidth = 300;
         const legendHeight = 20;
         const legendMargin = {top: 10, right: 10, bottom: 20, left: 20};
@@ -310,7 +372,7 @@
             .append("g")
             .attr("transform", `translate(${legendMargin.left},${legendMargin.top})`);
 
-// Add gradient
+        // Add gradient
         const gradient = legendSvg.append("defs").append("linearGradient")
             .attr("id", "gradient")
             .attr("x1", "0%")
@@ -318,7 +380,7 @@
             .attr("x2", "100%")
             .attr("y2", "0%");
 
-// Define additional color stops for the gradient
+        // Define additional color stops for the gradient
         const stops = [
             { offset: "0%", color: colorScale(0) },
             { offset: "25%", color: colorScale(25) },
@@ -333,13 +395,13 @@
                 .attr("stop-color", stop.color);
         });
 
-// Add gradient rectangle
+        // Add gradient rectangle
         legendSvg.append("rect")
             .attr("width", legendWidth)
             .attr("height", legendHeight)
             .style("fill", "url(#gradient)");
 
-// Add axis
+        // Add axis
         const xScale = d3.scaleLinear()
             .domain([0, 100])
             .range([0, legendWidth]);
@@ -360,6 +422,7 @@
                 if (selectedYear) updateMap(areaType, selectedYear);
             });
         });
+
         function navigate(slideUrl) {
             // Adjust this function based on your navigation setup
             window.location.href = slideUrl;
