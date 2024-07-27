@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Species Vulnerability by Country</title>
+    <title>Species Scatter Plot</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
     <style>
         .slide {
             display: none; /* Hide all slides by default */
@@ -13,11 +14,8 @@
         .slide.active {
             display: block; /* Show active slide */
         }
-        .navigation-buttons {
-            margin-top: 20px;
-        }
-        .bar {
-            fill: steelblue;
+        .scatter-circle {
+            stroke: none; /* Remove circle outline */
         }
         .axis text {
             font-size: 14px; /* Increased font size for better readability */
@@ -32,123 +30,172 @@
             pointer-events: none;
             opacity: 0;
         }
+        .annotation-note-title, text.title {
+            font-weight: bold;
+        }
+        text.title {
+            font-size: 1.2em;
+        }
+        .navigation-buttons {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .navigation-buttons button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 0 10px;
+        }
+        .navigation-buttons button:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
-<div id="slide2" class="slide active">
-    <h2>Species Vulnerability by Country</h2>
-    <label for="species-select-slide2">Select Species:</label>
-    <select id="species-select-slide2" class="species-select"></select>
-    <div id="chart2"></div>
-    <div class="navigation-buttons">
-        <button class="prev-slide" data-prev-slide="slide1">Previous</button>
-        <button class="next-slide" data-next-slide="slide3">Next</button>
-    </div>
+<!-- Scatter Plot Slide -->
+<div id="scatter-slide" class="slide active">
+    <h2>Scatter Plot: Endangered vs. Total Known Species</h2>
+    <div id="scatter-chart"></div>
 </div>
 
 <script>
     document.addEventListener("DOMContentLoaded", () => {
-        const svg2 = d3.select("#chart2").append("svg").attr("width", 1000).attr("height", 500); // Increased width and height
-        const margin2 = { top: 20, right: 30, bottom: 100, left: 60 };  // Increased bottom and left margins
-        const width2 = +svg2.attr("width") - margin2.left - margin2.right;
-        const height2 = +svg2.attr("height") - margin2.top - margin2.bottom;
+        // Scatter Plot Setup
+        const svgScatter = d3.select("#scatter-chart").append("svg")
+            .attr("width", 800)  // Increased size
+            .attr("height", 800) // Square shape
+            .attr("viewBox", `0 0 800 800`); // Ensure viewBox is square
 
-        const g2 = svg2.append("g")
-            .attr("transform", `translate(${margin2.left},${margin2.top})`);
+        const marginScatter = { top: 30, right: 30, bottom: 100, left: 80 }; // Increased margins for padding
+        const widthScatter = +svgScatter.attr("width") - marginScatter.left - marginScatter.right;
+        const heightScatter = +svgScatter.attr("height") - marginScatter.top - marginScatter.bottom;
 
-        // Initialize scales
-        const x = d3.scaleBand().rangeRound([0, width2]).padding(0.1);
-        const y = d3.scaleLinear().rangeRound([height2, 0]);
+        const gScatter = svgScatter.append("g")
+            .attr("transform", `translate(${marginScatter.left},${marginScatter.top})`);
 
-        // Initialize axes
-        g2.append("g")
-            .attr("transform", `translate(0,${height2})`)
+        // Scatter Plot Scales
+        const padding = 10; // Padding around the edges
+        const xScatter = d3.scaleLinear().range([padding, widthScatter - padding]);
+        const yScatter = d3.scaleLinear().range([heightScatter - padding, padding]);
+        const radiusScatter = d3.scaleSqrt().range([5, 50]); // Increased size range for circle radius
+
+        // Scatter Plot Color (Using d3.schemeSet3)
+        const color = d3.scaleOrdinal(d3.schemeSet3); // Pastel color scheme
+
+        // Scatter Plot Axes
+        gScatter.append("g")
+            .attr("transform", `translate(0,${heightScatter})`)
             .attr("class", "x-axis");
 
-        g2.append("g")
+        gScatter.append("g")
             .attr("class", "y-axis");
 
-        // Initialize tooltip
-        const tooltip = d3.select("body").append("div")
+        // Scatter Plot Tooltip
+        const tooltipScatter = d3.select("body").append("div")
             .attr("class", "tooltip");
 
-        // Function to update the chart based on selected species
-        function updateChart(selectedSpecies) {
+        // Function to Update Scatter Plot
+        function updateScatterPlot() {
             d3.csv("./dataset/country_vulnerable.csv").then(data => {
-                const filteredData = data.filter(d => d.Species === selectedSpecies);
+                // Group and roll up data
+                const groupedData = Array.from(
+                    d3.rollup(data, v => ({
+                        endangered: d3.sum(v.filter(d => d.IUCN === "ENDANGERED"), d => +d.Value),
+                        totalKnown: d3.sum(v.filter(d => d.IUCN === "TOT_KNOWN"), d => +d.Value)
+                    }), d => d.Country)
+                ).map(([Country, { endangered, totalKnown }]) => ({ Country, endangered, totalKnown }));
 
-                // Sort data by value in descending order
-                filteredData.sort((a, b) => b.Value - a.Value);
+                // Update Scales with Padding
+                xScatter.domain([0, d3.max(groupedData, d => d.endangered)]);
+                yScatter.domain([0, d3.max(groupedData, d => d.totalKnown)]);
+                radiusScatter.domain([0, d3.max(groupedData, d => d.totalKnown)]);
 
-                // Update scales
-                x.domain(filteredData.map(d => d.Country));
-                y.domain([0, d3.max(filteredData, d => +d.Value)]);
+                // Update Axes
+                gScatter.select(".x-axis").call(d3.axisBottom(xScatter).ticks(10).tickFormat(d3.format(".0s")));
+                gScatter.select(".y-axis").call(d3.axisLeft(yScatter).ticks(10).tickFormat(d3.format(".0s")));
 
-                // Update axes
-                g2.select(".x-axis").call(d3.axisBottom(x).tickSize(0))
-                    .selectAll("text")
-                    .attr("transform", "rotate(-45)")
-                    .style("text-anchor", "end")
-                    .style("font-size", "14px")  // Increased font size for better readability
-                    .style("padding", "0 5px");   // Add padding if needed
+                // Update Circles
+                const circles = gScatter.selectAll("circle")
+                    .data(groupedData, d => d.Country);
 
-                g2.select(".y-axis").call(d3.axisLeft(y).ticks(10));  // Added more ticks for better readability
-
-                // Update bars
-                const bars = g2.selectAll(".bar")
-                    .data(filteredData, d => d.Country);
-
-                bars.enter().append("rect")
-                    .attr("class", "bar")
-                    .attr("x", d => x(d.Country))
-                    .attr("y", d => y(d.Value))
-                    .attr("width", x.bandwidth())
-                    .attr("height", d => height2 - y(d.Value))
+                circles.enter().append("circle")
+                    .attr("class", "scatter-circle")
+                    .attr("r", d => radiusScatter(d.totalKnown)) // Set circle size based on totalKnown
+                    .attr("fill", d => color(d.Country)) // Color for circles
                     .on("mouseover", function(event, d) {
-                        tooltip.transition().duration(200).style("opacity", .9);
-                        tooltip.html(`Country: ${d.Country}<br>Value: ${d.Value}`)
+                        tooltipScatter.transition().duration(200).style("opacity", .9);
+                        tooltipScatter.html(`Country: ${d.Country}<br>Endangered: ${d.endangered}<br>Total Known: ${d.totalKnown}`)
                             .style("left", (event.pageX + 5) + "px")
                             .style("top", (event.pageY - 28) + "px");
                     })
                     .on("mouseout", function() {
-                        tooltip.transition().duration(500).style("opacity", 0);
+                        tooltipScatter.transition().duration(500).style("opacity", 0);
                     })
-                    .merge(bars)
+                    .merge(circles)
                     .transition().duration(750)
-                    .attr("x", d => x(d.Country))
-                    .attr("y", d => y(d.Value))
-                    .attr("width", x.bandwidth())
-                    .attr("height", d => height2 - y(d.Value));
+                    .attr("cx", d => {
+                        const xPos = xScatter(d.endangered);
+                        const radius = radiusScatter(d.totalKnown);
+                        return Math.max(radius + padding, Math.min(widthScatter - radius - padding, xPos)); // Ensure x position is within bounds
+                    })
+                    .attr("cy", d => {
+                        const yPos = yScatter(d.totalKnown);
+                        const radius = radiusScatter(d.totalKnown);
+                        return Math.max(radius + padding, Math.min(heightScatter - radius - padding, yPos)); // Ensure y position is within bounds
+                    })
+                    .attr("r", d => radiusScatter(d.totalKnown)) // Update radius on transition
+                    .attr("fill", d => color(d.Country)); // Update color on transition
 
-                bars.exit().remove();
+                circles.exit().remove();
+
+                // Add Annotations for Australia and Czech Republic
+                const annotations = [
+                    {
+                        note: {
+                            label: "High number of known species",
+                            title: "Australia"
+                        },
+                        x: xScatter(groupedData.find(d => d.Country === "Australia").endangered) + 105, // Adjusted x position
+                        y: yScatter(groupedData.find(d => d.Country === "Australia").totalKnown) + 105,  // Adjusted y position
+                        dy: 10,
+                        dx: 10,
+                        color: "grey"
+                    },
+                    {
+                        note: {
+                            label: "High number of endangered species",
+                            title: "Czech Republic"
+                        },
+                        x: xScatter(groupedData.find(d => d.Country === "Czech Republic").endangered)+40, // Position based on data
+                        y: yScatter(groupedData.find(d => d.Country === "Czech Republic").totalKnown)+20, // Position based on data
+                        dy: -10,
+                        dx: -10,
+                        color: "grey"
+                    }
+                ];
+
+                // Create the annotation generator
+                const makeAnnotations = d3.annotation()
+                    .type(d3.annotationCalloutElbow)
+                    .annotations(annotations);
+
+                // Append the annotations to the SVG
+                d3.select("svg")
+                    .append("g")
+                    .attr("class", "annotation-group")
+                    .call(makeAnnotations);
             });
         }
 
-        // Load data and populate dropdown
-        d3.csv("./dataset/country_vulnerable.csv").then(data => {
-            updateDropdowns(data, '#species-select-slide2');
-
-            // Initialize chart with default selection
-            const defaultSpecies = document.querySelector('#species-select-slide2').value;
-            updateChart(defaultSpecies);
-
-            // Event listener for dropdown change
-            document.querySelector('#species-select-slide2').addEventListener('change', function() {
-                updateChart(this.value);
-            });
-        });
-
-        // Function to populate dropdown
-        function updateDropdowns(data, selector) {
-            const dropdown = d3.select(selector);
-            const species = Array.from(new Set(data.map(d => d.Species))).sort();
-
-            dropdown.selectAll("option")
-                .data(species)
-                .enter()
-                .append("option")
-                .text(d => d)
-                .attr("value", d => d);
+        // Initialize Scatter Plot
+        updateScatterPlot();
+        function navigate(slideUrl) {
+            // Adjust this function based on your navigation setup
+            window.location.href = slideUrl;
         }
     });
 </script>

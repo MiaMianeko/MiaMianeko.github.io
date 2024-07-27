@@ -7,13 +7,18 @@
     <link rel="stylesheet" href="styles.css">
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <script src="https://d3js.org/topojson.v3.min.js"></script>
+    <script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
         }
         #map {
             width: 100%;
             height: 800px;
+            margin: 0;
         }
         .tooltip {
             position: absolute;
@@ -30,23 +35,120 @@
         }
         .controls {
             margin: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         .controls label {
             margin-right: 10px;
+            font-size: 16px;
         }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .slider-container input[type="range"] {
+            -webkit-appearance: none;
+            width: 300px;
+            height: 8px;
+            background: #ddd;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #4CAF50;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .slider-container input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #4CAF50;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .slider-container span {
+            font-size: 16px;
+            margin-left: 10px;
+        }
+        .radio-group {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .radio-group input[type="radio"] {
+            display: none;
+        }
+        .radio-group label {
+            display: inline-block;
+            background: #f0f0f0;
+            padding: 10px 20px;
+            border-radius: 25px;
+            margin-right: 10px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .radio-group input[type="radio"]:checked + label {
+            background: #4CAF50;
+            color: white;
+        }
+        .title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0; /* Adjusted margin to bring the title closer to the SVG */
+            padding: 10px; /* Optional: Add padding if needed for better spacing */
+        }
+        .legend {
+            margin: 20px;
+        }
+        .navigation-buttons {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .navigation-buttons button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 0 10px;
+        }
+        .navigation-buttons button:hover {
+            background-color: #0056b3;
+        }
+
     </style>
 </head>
 <body>
+<div class="title">World Protected Areas by Time</div>
 <div class="controls">
-    <label for="year-select">Select Year:</label>
-    <select id="year-select"></select>
-    <label>Select Area Type:</label>
-    <input type="radio" id="terrestrial" name="area-type" value="TERRESTRIAL" checked>
-    <label for="terrestrial">Terrestrial</label>
-    <input type="radio" id="marine" name="area-type" value="MARINE">
-    <label for="marine">Marine</label>
+    <div class="slider-container">
+        <label for="year-slider">Select Year:</label>
+        <input type="range" id="year-slider" min="1950" max="2020" step="5" value="1950">
+        <span id="year-label">1950</span>
+    </div>
+    <div class="radio-group">
+        <input type="radio" id="terrestrial" name="area-type" value="TERRESTRIAL" checked>
+        <label for="terrestrial">Terrestrial</label>
+        <input type="radio" id="marine" name="area-type" value="MARINE">
+        <label for="marine">Marine</label>
+    </div>
 </div>
-<div id="map"></div>
+<div id="map"><div id="legend" class="legend"></div></div>
+
+
+
 
 <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -68,20 +170,20 @@
 
         let allData = [];
         let countries = [];
+        let dataMap = new Map();
+
 
         function updateMap(areaType, year) {
             if (!year) return;
 
-            // Filter data
             const filteredData = allData.filter(d => d.Domain === areaType && d.Year === year);
 
-            // Handle case where filteredData might be empty
             if (filteredData.length === 0) {
                 console.warn(`No data available for ${areaType} in year ${year}`);
                 return;
             }
 
-            const dataMap = new Map(filteredData.map(d => [d.Country, +d.Value]));
+            dataMap = new Map(filteredData.map(d => [d.Country, +d.Value]));
 
             svg.selectAll("path")
                 .data(countries.features)
@@ -89,7 +191,7 @@
                 .attr("fill", d => {
                     const countryName = d.properties.name;
                     const value = dataMap.get(countryName) || 0;
-                    return d3.interpolateYlGnBu(value / 100); // Adjust color based on percentage
+                    return colorScale(value); // Use colorScale here
                 })
                 .attr("d", path)
                 .on("mouseover", (event, d) => {
@@ -103,22 +205,67 @@
                 .on("mouseout", () => {
                     tooltip.transition().duration(500).style("opacity", 0);
                 });
+
+            addAnnotations();
         }
 
-        function updateDropdowns(data, selector) {
-            const dropdown = d3.select(selector);
-            const years = Array.from(new Set(data.map(d => d.Year)));
+        function addAnnotations() {
+            const annotations = [
+                {
+                    note: {
+                        label: `Increase Terrestrial Overtime`,
+                        title: "West Europe"
+                    },
+                    type: d3.annotationCalloutCircle,
+                    subject: {
+                        radius: 40
+                    },
+                    x: projection([10.3468, 56.1304])[0],
+                    y: projection([-116.3468, 46.1304])[1],
+                    dy: 50,
+                    dx: 100,
+                    color: "grey"
+                },
+                {
+                    note: {
+                        label: `Increase Marine Overtime`,
+                        title: "South America"
+                    },
+                    type: d3.annotationCalloutCircle,
+                    subject: {
+                        radius: 70
+                    },
+                    x: projection([-53.7751, -25.2744])[0],
+                    y: projection([133.7751, -25.2744])[1],
+                    dy: 50,
+                    dx: 120,
+                    color: "grey"
+                }
+            ];
 
-            dropdown.selectAll("option")
-                .data(years)
-                .enter().append("option")
-                .attr("value", d => d)
-                .text(d => d);
+            const makeAnnotations = d3.annotation()
+                .type(d3.annotationCalloutCircle)
+                .annotations(annotations);
 
-            dropdown.on("change", function() {
-                const selectedYear = this.value;
-                updateMap(document.querySelector('input[name="area-type"]:checked').value, selectedYear);
-            });
+            svg.selectAll(".annotation-group").remove();
+            svg.append("g")
+                .attr("class", "annotation-group")
+                .call(makeAnnotations);
+        }
+
+        function updateSlider(years) {
+            const slider = d3.select('#year-slider');
+            const label = d3.select('#year-label');
+
+            slider
+                .attr('min', d3.min(years))
+                .attr('max', d3.max(years))
+                .attr('step', 5)
+                .on('input', function() {
+                    const year = this.value;
+                    label.text(year);
+                    updateMap(document.querySelector('input[name="area-type"]:checked').value, year);
+                });
         }
 
         d3.json('https://unpkg.com/world-atlas@2/countries-50m.json').then(world => {
@@ -131,6 +278,8 @@
                 .attr("d", path)
                 .attr("stroke", "#fff")
                 .attr("stroke-width", 0.5);
+
+            addAnnotations();
         });
 
         d3.csv('./dataset/country_terrestrial_protected_area.csv').then(data => {
@@ -138,20 +287,83 @@
             return d3.csv('./dataset/country_marine_protected_area.csv');
         }).then(data => {
             allData = allData.concat(data.map(d => ({ ...d, Domain: "MARINE" })));
-            updateDropdowns(allData, '#year-select');
-            const initialYear = document.querySelector('#year-select').value;
+            const years = Array.from(new Set(allData.map(d => +d.Year)));
+            updateSlider(years);
+            const initialYear = document.querySelector('#year-slider').value;
             if (initialYear) updateMap("TERRESTRIAL", initialYear);
         }).catch(error => {
             console.error('Error loading data:', error);
         });
 
+        // Define color scale for both map and legend
+        const colorScale = d3.scaleSequential(d3.interpolateYlGnBu)
+            .domain([0, 100]);
+
+// Add legend
+        const legendWidth = 300;
+        const legendHeight = 20;
+        const legendMargin = {top: 10, right: 10, bottom: 20, left: 20};
+
+        const legendSvg = d3.select("#legend").append("svg")
+            .attr("width", legendWidth + legendMargin.left + legendMargin.right)
+            .attr("height", legendHeight + legendMargin.top + legendMargin.bottom)
+            .append("g")
+            .attr("transform", `translate(${legendMargin.left},${legendMargin.top})`);
+
+// Add gradient
+        const gradient = legendSvg.append("defs").append("linearGradient")
+            .attr("id", "gradient")
+            .attr("x1", "0%")
+            .attr("y1", "0%")
+            .attr("x2", "100%")
+            .attr("y2", "0%");
+
+// Define additional color stops for the gradient
+        const stops = [
+            { offset: "0%", color: colorScale(0) },
+            { offset: "25%", color: colorScale(25) },
+            { offset: "50%", color: colorScale(50) },
+            { offset: "75%", color: colorScale(75) },
+            { offset: "100%", color: colorScale(100) }
+        ];
+
+        stops.forEach(stop => {
+            gradient.append("stop")
+                .attr("offset", stop.offset)
+                .attr("stop-color", stop.color);
+        });
+
+// Add gradient rectangle
+        legendSvg.append("rect")
+            .attr("width", legendWidth)
+            .attr("height", legendHeight)
+            .style("fill", "url(#gradient)");
+
+// Add axis
+        const xScale = d3.scaleLinear()
+            .domain([0, 100])
+            .range([0, legendWidth]);
+
+        const xAxis = d3.axisBottom(xScale)
+            .ticks(5)
+            .tickSize(10);
+
+        legendSvg.append("g")
+            .attr("class", "x-axis")
+            .attr("transform", `translate(0,${legendHeight})`)
+            .call(xAxis);
+
         document.querySelectorAll('input[name="area-type"]').forEach(input => {
             input.addEventListener('change', function() {
                 const areaType = this.value;
-                const selectedYear = document.querySelector('#year-select').value;
+                const selectedYear = document.querySelector('#year-slider').value;
                 if (selectedYear) updateMap(areaType, selectedYear);
             });
         });
+        function navigate(slideUrl) {
+            // Adjust this function based on your navigation setup
+            window.location.href = slideUrl;
+        }
     });
 </script>
 </body>

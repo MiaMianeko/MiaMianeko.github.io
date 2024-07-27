@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Red List Index Over Time</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <style>
@@ -13,34 +12,97 @@
         .slide.active {
             display: block; /* Show active slide */
         }
-        .navigation-buttons {
-            margin-top: 20px;
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            width: 200px;
+            height: auto;
+            padding: 5px;
+            font: 12px sans-serif;
+            background: lightsteelblue;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0;
         }
-        /* Additional styling for the chart labels */
-        .label {
+        .line {
+            stroke-width: 3; /* Increase line thickness */
+        }
+        .line.hover {
+            stroke-width: 4; /* Increase thickness on hover */
+        }
+        .line.hover-area {
+            stroke: none; /* Make interactive area invisible */
+            fill: none; /* Ensure interactive area is invisible */
+            pointer-events: all; /* Make interactive area selectable */
+        }
+        .hover-line {
+            stroke-dasharray: 5, 5; /* Make line dotted */
+        }
+        .legend rect {
+            stroke-width: 1px;
+        }
+
+        .legend text {
             font-size: 12px;
-            fill: black;
+            text-anchor: start;
         }
+        /* General styles for dropdown */
+        .country-select {
+            appearance: none; /* Remove default browser styling */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            border: 1px solid #ccc; /* Border color */
+            border-radius: 4px; /* Rounded corners */
+            background-color: #f9f9f9; /* Background color */
+            color: #333; /* Text color */
+            padding: 10px; /* Padding inside the dropdown */
+            font-size: 14px; /* Font size */
+            width: 200px; /* Width of the dropdown */
+            cursor: pointer; /* Pointer cursor on hover */
+            outline: none; /* Remove default outline */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Add shadow */
+            transition: all 0.3s ease; /* Smooth transition for hover effect */
+        }
+
+        /* Dropdown arrow */
+        .country-select::-ms-expand {
+            display: none; /* Hide default dropdown arrow in Internet Explorer */
+        }
+
+        /* Style for dropdown when hovered */
+        .country-select:hover {
+            border-color: #888; /* Darker border color on hover */
+        }
+
+        /* Style for dropdown when focused */
+        .country-select:focus {
+            border-color: #007bff; /* Change border color when focused */
+            box-shadow: 0 0 0 0.2rem rgba(38, 143, 255, 0.25); /* Focus shadow */
+        }
+        .title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0; /* Adjusted margin to bring the title closer to the SVG */
+            padding: 10px; /* Optional: Add padding if needed for better spacing */
+        }
+
     </style>
+
 </head>
 <body>
 <div id="slide1" class="slide active">
     <h2>Red List Index Over Time</h2>
     <label for="country-select-slide1">Select Country:</label>
     <select id="country-select-slide1" class="country-select"></select>
-    <label for="year-slider-slide1">Select Year Range:</label>
-    <input type="range" id="year-slider-slide1" min="2000" max="2020" step="1" value="2020">
     <div id="chart1"></div>
-    <div class="navigation-buttons">
-        <!-- No Previous button needed for Slide 1 -->
-        <button class="next-slide" data-next-slide="slide2">Next</button>
-    </div>
 </div>
 
 <script>
     document.addEventListener("DOMContentLoaded", () => {
-        const svg1 = d3.select("#chart1").append("svg").attr("width", 800).attr("height", 400);
-        const margin1 = { top: 20, right: 30, bottom: 30, left: 40 };
+        const svg1 = d3.select("#chart1").append("svg").attr("width", 900).attr("height", 400);
+        const margin1 = { top: 20, right: 100, bottom: 30, left: 40 };
         const width1 = +svg1.attr("width") - margin1.left - margin1.right;
         const height1 = +svg1.attr("height") - margin1.top - margin1.bottom;
         const g1 = svg1.append("g")
@@ -51,6 +113,7 @@
         const y = d3.scaleLinear().rangeRound([height1, 0]);
 
         const line = d3.line()
+            .curve(d3.curveBasis) // Apply the curveBasis interpolation method
             .x(d => x(d.Year))
             .y(d => y(d.Value));
 
@@ -60,43 +123,71 @@
 
         const yAxis = g1.append("g");
 
-        // Initialize lines
+        // Initialize lines with Category10 color scheme
+        const colors = d3.schemeCategory10;
         const indexLine = g1.append("path")
+            .attr("class", "line")
             .attr("fill", "none")
-            .attr("stroke", "steelblue")
-            .attr("stroke-width", 1.5);
+            .attr("stroke", colors[0]);
 
         const upperLine = g1.append("path")
+            .attr("class", "line")
             .attr("fill", "none")
-            .attr("stroke", "red")
-            .attr("stroke-width", 1.5);
+            .attr("stroke", colors[1]);
 
         const lowerLine = g1.append("path")
+            .attr("class", "line")
             .attr("fill", "none")
-            .attr("stroke", "green")
-            .attr("stroke-width", 1.5);
+            .attr("stroke", colors[2]);
 
-        // Initialize labels
-        g1.append("text")
-            .attr("x", width1 - 150)
-            .attr("y", 20)
-            .attr("fill", "steelblue")
-            .attr("font-size", "12px")
-            .text("Index");
+        // Add invisible interactive areas
+        g1.append("path")
+            .attr("class", "line hover-area")
+            .attr("fill", "none")
+            .attr("stroke", "none")
+            .attr("pointer-events", "all");
 
-        g1.append("text")
-            .attr("x", width1 - 150)
-            .attr("y", 40)
-            .attr("fill", "red")
-            .attr("font-size", "12px")
-            .text("Upper Bound");
+        // Add vertical hover line
+        const hoverLine = g1.append("line")
+            .attr("class", "hover-line")
+            .attr("stroke", "black")
+            .attr("stroke-width", 1)
+            .style("opacity", 0); // Hide initially
 
-        g1.append("text")
-            .attr("x", width1 - 150)
-            .attr("y", 60)
-            .attr("fill", "green")
-            .attr("font-size", "12px")
-            .text("Lower Bound");
+        // Create legend
+        const legend = svg1.append("g")
+            .attr("class", "legend")
+            .attr("transform", `translate(${width1 + margin1.right - 50}, ${margin1.top})`);
+
+        const legendData = [
+            { label: "Index", color: colors[0] },
+            { label: "Upper Bound", color: colors[1] },
+            { label: "Lower Bound", color: colors[2] }
+        ];
+
+        legend.selectAll("rect")
+            .data(legendData)
+            .enter()
+            .append("rect")
+            .attr("x", 0)
+            .attr("y", (d, i) => i * 20)
+            .attr("width", 18)
+            .attr("height", 18)
+            .style("fill", d => d.color);
+
+        legend.selectAll("text")
+            .data(legendData)
+            .enter()
+            .append("text")
+            .attr("x", 24)
+            .attr("y", (d, i) => i * 20 + 9)
+            .attr("dy", "0.35em")
+            .text(d => d.label);
+
+        // Add tooltip
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
 
         // Load data
         d3.csv("./dataset/red_list_index_country_timeseries.csv").then(data => {
@@ -138,44 +229,89 @@
                 lowerLine
                     .datum(lowerData) // Use .datum() for a single line
                     .attr("d", line);
+
+                // Update interactive areas
+                g1.select(".hover-area")
+                    .datum(indexData.concat(upperData).concat(lowerData))
+                    .attr("d", d => line(d))
+                    .style("pointer-events", "all");
+
+                // Add mouse event listeners
+                g1.on("mouseover", function(event) {
+                    const mouse = d3.pointer(event);
+                    const xPos = mouse[0];
+
+                    // Find nearest data points
+                    const nearestIndexPoint = indexData.reduce((prev, curr) =>
+                        Math.abs(x(curr.Year) - xPos) < Math.abs(x(prev.Year) - xPos) ? curr : prev
+                    );
+                    const nearestUpperPoint = upperData.reduce((prev, curr) =>
+                        Math.abs(x(curr.Year) - xPos) < Math.abs(x(prev.Year) - xPos) ? curr : prev
+                    );
+                    const nearestLowerPoint = lowerData.reduce((prev, curr) =>
+                        Math.abs(x(curr.Year) - xPos) < Math.abs(x(prev.Year) - xPos) ? curr : prev
+                    );
+
+                    // Update vertical line position
+                    hoverLine
+                        .attr("x1", xPos)
+                        .attr("x2", xPos)
+                        .attr("y1", 0)
+                        .attr("y2", height1)
+                        .style("opacity", 1); // Show line on hover
+
+                    // Update tooltip
+                    tooltip.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    tooltip.html(`
+                        Year: ${d3.timeFormat("%Y")(nearestIndexPoint.Year)}<br>Value (Index): ${nearestIndexPoint.Value}<br>
+                        Value (Upper): ${nearestUpperPoint.Value}<br>Value (Lower): ${nearestLowerPoint.Value}
+                    `)
+                        .style("left", `${event.pageX + 5}px`)
+                        .style("top", `${event.pageY - 28}px`);
+                }).on("mousemove", function(event) {
+                    const mouse = d3.pointer(event);
+                    const xPos = mouse[0];
+
+                    // Update vertical line position
+                    hoverLine
+                        .attr("x1", xPos)
+                        .attr("x2", xPos);
+
+                    // Update tooltip position
+                    tooltip.style("left", `${event.pageX + 5}px`)
+                        .style("top", `${event.pageY - 28}px`);
+                }).on("mouseout", function() {
+                    // Hide tooltip and vertical line
+                    tooltip.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                    hoverLine
+                        .attr("x1", 0)
+                        .attr("x2", 0);
+                });
             }
 
-            // Initialize chart with default selection
-            updateChart();
-
-            // Event listener for dropdown change
+            // Update chart when country selection changes
             document.querySelector('#country-select-slide1').addEventListener('change', updateChart);
 
-            // Event listener for year slider
-            document.getElementById('year-slider-slide1').addEventListener('input', function() {
-                const year = +this.value;
-                const filteredData = data.filter(d => d.Year.getFullYear() <= year && d.Country === document.querySelector('#country-select-slide1').value);
-
-                // Update domain based on the filtered data
-                y.domain([
-                    d3.min(filteredData, d => d['VAR'] === 'LOWER' ? d.Value : Infinity),
-                    d3.max(filteredData, d => d['VAR'] === 'UPPER' ? d.Value : -Infinity)
-                ]);
-
-                indexLine.datum(filteredData.filter(d => d['VAR'] === 'INDEX')).attr("d", line);
-                upperLine.datum(filteredData.filter(d => d['VAR'] === 'UPPER')).attr("d", line);
-                lowerLine.datum(filteredData.filter(d => d['VAR'] === 'LOWER')).attr("d", line);
-            });
+            // Initial chart update
+            updateChart();
         });
+
+        function updateDropdowns(data, selector) {
+            const select = d3.select(selector);
+            const countries = Array.from(new Set(data.map(d => d.Country)));
+            select.selectAll("option")
+                .data(countries)
+                .enter()
+                .append("option")
+                .attr("value", d => d)
+                .text(d => d);
+        }
+
     });
-
-    // Function to populate dropdown with country options
-    function updateDropdowns(data, selector) {
-        const dropdown = d3.select(selector);
-        const countries = Array.from(new Set(data.map(d => d.Country))).sort();
-
-        dropdown.selectAll("option")
-            .data(countries)
-            .enter()
-            .append("option")
-            .text(d => d)
-            .attr("value", d => d);
-    }
 </script>
 </body>
 </html>
