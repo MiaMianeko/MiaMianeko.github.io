@@ -47,6 +47,7 @@
             font-size: 12px;
             text-anchor: start;
         }
+
         /* General styles for dropdown */
         .country-select {
             appearance: none; /* Remove default browser styling */
@@ -104,6 +105,17 @@
             border-radius: 5px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);/* Add a shadow for better visibility */
         }
+        .transition-message {
+            margin: 20px 0;
+            font-size: 18px;
+            font-family: Arial, sans-serif;
+            color: #333;
+        }
+        .emphasized {
+            font-size: 20px;
+            font-weight: bold;
+            color: #007bff;
+        }
 
     </style>
 
@@ -130,6 +142,10 @@
                     <li>Select a country from the dropdown menu to view its Red List Index data.</li>
                     <li>Hover over the line graph. The dotted vertical line will show the three estimates (Index, Upper, and Lower Bound) for the hovered year. The tooltip displays the exact values for that year.</li>
                 </ul>
+                <p id="transitionMessage" class="transition-message" >
+                    The Red List Index is declining for many countries and the world as a whole. What does this mean for individual nations?
+                    <span class="emphasized">Discover the number of endangered species per country in the next slide.</span>
+                </p>
             </div>
         </div>
     </div>
